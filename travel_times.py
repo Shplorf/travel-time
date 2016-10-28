@@ -16,8 +16,6 @@ WORK_HOURS = {
     '11_7': (11, 19)
 }
 
-OUT_FILE = 'travel_times.csv'
-
 IN_HEADER = {
     'name': 'name',
     'address': 'address',
@@ -46,10 +44,18 @@ parser.add_argument(
 
 parser.add_argument(
     '-f',
-    '--data_file',
+    '--input_file',
     help='CSV File with addresses and preferred travel modes',
     type=str,
     default='data.csv'
+)
+
+parser.add_argument(
+    '-o',
+    '--output_file',
+    help='CSV File duplicating input data, but also adding travel times',
+    type=str,
+    default='travel_times.csv'
 )
 
 parser.add_argument(
@@ -93,7 +99,7 @@ def get_times(day_of_week, times):
 args = parser.parse_args()
 time_slots = get_times(args.day_of_week, WORK_HOURS)
 
-with open(args.data_file, 'r') as csv_in, open(OUT_FILE, 'w') as csv_out:
+with open(args.input_file, 'r') as csv_in, open(args.output_file, 'w') as csv_out:
 
     reader = csv.DictReader(csv_in)
     writer = csv.DictWriter(csv_out, fieldnames=['name', 'address', 'mode', '6_2', '7_3', '8_4', '9_5', '10_6', '11_7'])
