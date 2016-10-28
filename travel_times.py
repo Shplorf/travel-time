@@ -19,7 +19,6 @@ WORK_HOURS = {
 IN_HEADER = {
     'name': 'name',
     'address': 'address',
-    'address': 'address',
     'mode': 'mode'
 }
 
