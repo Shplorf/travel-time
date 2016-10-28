@@ -5,6 +5,7 @@ import datetime
 
 import pytz
 import requests
+import frogress
 
 WORK_HOURS = {
     '6_2': (6, 14),
@@ -95,10 +96,10 @@ time_slots = get_times(args.day_of_week, WORK_HOURS)
 with open(args.data_file, 'r') as csv_in, open(OUT_FILE, 'w') as csv_out:
 
     reader = csv.DictReader(csv_in)
-    writer = csv.DictWriter(csv_out, fieldnames=OUT_HEADER.values() + WORK_HOURS.keys())
+    writer = csv.DictWriter(csv_out, fieldnames=['name', 'address', 'mode', '6_2', '7_3', '8_4', '9_5', '10_6', '11_7'])
     writer.writeheader()
 
-    for row in reader:
+    for row in frogress.bar(reader):
 
         output = row
 
