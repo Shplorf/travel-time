@@ -6,8 +6,8 @@
 
 ## Usage
 ```
-usage: travel_times.py [-h] -a ADDRESS [-f DATA_FILE] -k API_KEY
-                       [-d DAY_OF_WEEK]
+usage: travel_times.py [-h] -a ADDRESS [-f INPUT_FILE] [-o OUTPUT_FILE] -k
+                       API_KEY [-d DAY_OF_WEEK]
 
 Travel times calculator
 
@@ -15,9 +15,12 @@ optional arguments:
   -h, --help            show this help message and exit
   -a ADDRESS, --address ADDRESS
                         Destination address (default: None)
-  -f DATA_FILE, --data_file DATA_FILE
+  -f INPUT_FILE, --input_file INPUT_FILE
                         CSV File with addresses and preferred travel modes
                         (default: data.csv)
+  -o OUTPUT_FILE, --output_file OUTPUT_FILE
+                        CSV File duplicating input data, but also adding
+                        travel times (default: travel_times.csv)
   -k API_KEY, --api_key API_KEY
                         Google Directions API key (default: None)
   -d DAY_OF_WEEK, --day_of_week DAY_OF_WEEK
