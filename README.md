@@ -7,7 +7,7 @@ This script leverages the Google distance matrix API to find commute times to di
 ## Usage
 ```
 usage: travel_times.py [-h] [-m {preferred,driving,bicycling,transit,walking}]
-                       [-d DAY_OF_WEEK] [-f INPUT_FILE] [-o OUTPUT_FILE]
+                       [-d DAY_OF_WEEK] [-i INPUT_FILE] [-o OUTPUT_FILE]
                        api_key address
 
 Travel times calculator
