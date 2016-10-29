@@ -6,6 +6,8 @@ import datetime
 import pytz
 import grequests
 
+
+# Constants
 WORK_HOURS = [
     {
         'name': '6_3',
@@ -50,7 +52,10 @@ MODES = ['driving', 'bicycling', 'transit', 'walking']
 TZ = pytz.timezone('America/New_York')
 
 API_ENDPOINT_STR = 'https://maps.googleapis.com/maps/api/distancematrix/json'
+# End Constants
 
+
+# Command line arg parsing
 parser = argparse.ArgumentParser(
     description='Travel times calculator',
     formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -100,9 +105,18 @@ parser.add_argument(
     type=str,
     default='travel_times.csv'
 )
+# End command line arg parsing
 
 
+# Utility functions
 def next_weekday(d, weekday):
+    """
+    Returns the date of the next [weekday] after date [d]
+    :param d: datetime object
+    :param weekday: integer between 0 and 6, where 0 = Monday, 1 = Tuesday, etc...
+    :return: datetime object of the next [weekday] after date [d]
+    """
+
     days_ahead = weekday - d.weekday()
     if days_ahead <= 0: # Target day already happened this week
         days_ahead += 7
@@ -110,6 +124,22 @@ def next_weekday(d, weekday):
 
 
 def get_times(day_of_week, times):
+    """
+    Given a list of time slot interval dicts, return a dict of tuples where the keys are the names of the time slots
+    and the two vlaues are datetime objects representing the corresponding start and end times on the next
+    [day_of_week] day of the week after today.
+    :param day_of_week: integer between 0 and 6, where 0 = Monday, 1 = Tuesday, etc...
+    :param times: List of dicts in the following format:
+        [{
+            'name': '6_3',
+            'start': 6,
+            'end': 15
+        }]
+    :return: Dict of tuples in the following format:
+        {
+            '6_3': (datetime object, datetime object)
+        }
+    """
 
     day = next_weekday(datetime.date.today(), day_of_week)
     out_times = {}
@@ -121,7 +151,10 @@ def get_times(day_of_week, times):
         )
 
     return out_times
+# End utility functions
 
+
+# Main body of script
 args = parser.parse_args()
 time_slots = get_times(args.day_of_week, WORK_HOURS)
 
@@ -218,6 +251,7 @@ with open(args.input_file, 'r') as csv_in:
                 raise ValueError("Non-200 status code! URL:%s" % result.url)
             j += 1
         i += 1
+    # End Office -> home
 
     # Output results to CSV
     with open(args.output_file, 'w') as csv_out:
@@ -246,3 +280,4 @@ with open(args.input_file, 'r') as csv_in:
             del person['times']
 
         writer.writerows(people)
+# End main body of script
