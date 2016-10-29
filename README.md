@@ -1,7 +1,7 @@
 # travel-time
 ## Required Python modules:
-- pytz
-- grequests
+- pytz (for time zone stuff)
+- grequests (for easy parallel API requests)
 
 ## Usage
 ```
