@@ -4,7 +4,7 @@ import json
 import datetime
 
 import pytz
-import requests
+import grequests
 
 WORK_HOURS = [
     {
@@ -16,27 +16,27 @@ WORK_HOURS = [
         'name': '7_4',
         'start': 7,
         'end': 16
-    },
-    {
-        'name': '8_5',
-        'start': 8,
-        'end': 17
-    },
-    {
-        'name': '9_6',
-        'start': 9,
-        'end': 18
-    },
-    {
-        'name': '10_7',
-        'start': 10,
-        'end': 19
-    },
-    {
-        'name': '11_8',
-        'start': 11,
-        'end': 20
     }
+    # {
+    #     'name': '8_5',
+    #     'start': 8,
+    #     'end': 17
+    # },
+    # {
+    #     'name': '9_6',
+    #     'start': 9,
+    #     'end': 18
+    # },
+    # {
+    #     'name': '10_7',
+    #     'start': 10,
+    #     'end': 19
+    # },
+    # {
+    #     'name': '11_8',
+    #     'start': 11,
+    #     'end': 20
+    # }
 ]
 
 IN_HEADER = [
@@ -144,51 +144,80 @@ with open(args.input_file, 'r') as csv_in:
         modes.append(row[IN_HEADER[2]])
 
     # For each mode and time slot, ask the Google API for the travel times
+
+    # Home -> office
+    #
+    # Preparing requests and sending them out in parallel
+    request_params = []
     for mode in MODES:
-
-        if mode == 'driving':
-            dur_str = 'duration_in_traffic'
-        else:
-            dur_str = 'duration'
-
         for time_slot_name, time_slot in time_slots.iteritems():
-
-            # Home -> office
-            params = {
+            request_params.append({
                 'mode': mode,
                 'origins': '|'.join(addresses),
                 'destinations': args.address,
                 'key': args.api_key,
                 'departure_time': int((time_slot[0] - datetime.datetime(1970,1,1, tzinfo=TZ)).total_seconds())
-            }
-            r = requests.get(API_ENDPOINT_STR, params=params)
+            })
+    results = grequests.map(grequests.get(API_ENDPOINT_STR, params=p) for p in request_params)
 
-            if r.status_code == 200:
-                body = json.loads(r.text)
-                for i in xrange(len(addresses)):
-                    person = people[i]
+    # Parsing results
+    i = 0
+    for mode in MODES:
+        if mode == 'driving':
+            dur_str = 'duration_in_traffic'
+        else:
+            dur_str = 'duration'
+        j = 0
+        for time_slot_name, time_slot in time_slots.iteritems():
+
+            result = results[i + j]
+            if result.status_code == 200:
+                body = json.loads(result.text)
+
+                for k in xrange(len(addresses)):
+                    person = people[k]
                     person.setdefault('times', {})
                     person['times'].setdefault(time_slot_name, {})
                     person['times'][time_slot_name].setdefault(mode, 0)
-                    person['times'][time_slot_name][mode] += body['rows'][i]['elements'][0][dur_str]['value']
+                    person['times'][time_slot_name][mode] += body['rows'][k]['elements'][0][dur_str]['value']
+            j += 1
+        i += 1
+    # End Home -> office
 
-            # Office -> home
-            params = {
+    # Office -> home
+    #
+    # Preparing requests and sending them out in parallel
+    request_params = []
+    for mode in MODES:
+        for time_slot_name, time_slot in time_slots.iteritems():
+            request_params.append({
                 'mode': mode,
                 'origins': args.address,
                 'destinations': '|'.join(addresses),
                 'key': args.api_key,
                 'departure_time': int((time_slot[1] - datetime.datetime(1970, 1, 1, tzinfo=TZ)).total_seconds())
-            }
-            r = requests.get(API_ENDPOINT_STR, params=params)
+            })
+    results = grequests.map(grequests.get(API_ENDPOINT_STR, params=p) for p in request_params)
 
-            if r.status_code == 200:
+    # Parsing results
+    i = 0
+    for mode in MODES:
+        if mode == 'driving':
+            dur_str = 'duration_in_traffic'
+        else:
+            dur_str = 'duration'
+        j = 0
+        for time_slot_name, time_slot in time_slots.iteritems():
 
-                body = json.loads(r.text)
+            result = results[i + j]
+            if result.status_code == 200:
+                body = json.loads(result.text)
 
-                for i in xrange(len(addresses)):
-                    person = people[i]
-                    person['times'][time_slot_name][mode] += body['rows'][0]['elements'][i][dur_str]['value']
+                for k in xrange(len(addresses)):
+                    person = people[k]
+                    person['times'][time_slot_name][mode] += body['rows'][0]['elements'][k][dur_str]['value']
+            j += 1
+        i += 1
 
     # Output results to CSV
     with open(args.output_file, 'w') as csv_out:
