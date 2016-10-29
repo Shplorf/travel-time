@@ -1,8 +1,7 @@
 # travel-time
 ## Required Python modules:
-- pytz
-- requests
-- frogress
+- pytz (for time zone stuff)
+- grequests (for easy parallel API requests)
 
 ## Usage
 ```
@@ -23,7 +22,7 @@ optional arguments:
                         CSV File duplicating input data, but also adding
                         travel times (default: travel_times.csv)
   -k API_KEY, --api_key API_KEY
-                        Google Directions API key (default: None)
+                        Google Distance Matrix API key (default: None)
   -d DAY_OF_WEEK, --day_of_week DAY_OF_WEEK
                         Day of week to calculate travel times for. 0 = Monday,
                         1=Tuesday, 2=Wednesday... (default: 0)
@@ -43,8 +42,8 @@ Valid modes:
 - transit
 
 # Output
-CSV header: `name,address,mode,6_2,7_3,8_4,9_5,10_6,11_7`
+CSV header: `name,address,mode,6_3,7_4,8_5,9_6,10_7,11_8`
 
-Columns after mode represent 8-hour work day intervals. Values are total commute time (in + out) in seconds
+Columns after mode represent work day intervals, from departure from home to departure from work. Values are total commute time (in + out) in seconds
 
 Example row: `John Doe,123 Some St Cambridge MA,driving,1968,1968,1968,1968,1968,1968`
