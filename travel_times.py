@@ -83,7 +83,7 @@ parser.add_argument(
 parser.add_argument(
     '-k',
     '--api_key',
-    help='Google Directions API key',
+    help='Google Distance Matrix API key',
     type=str,
     required=True
 )
