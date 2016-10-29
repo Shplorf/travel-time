@@ -22,7 +22,7 @@ optional arguments:
   -d DAY_OF_WEEK, --day_of_week DAY_OF_WEEK
                         Day of week to calculate travel times for. 0 = Monday,
                         1=Tuesday, 2=Wednesday... (default: 0)
-  -f INPUT_FILE, --input_file INPUT_FILE
+  -i INPUT_FILE, --input_file INPUT_FILE
                         CSV File with addresses and preferred travel modes
                         (default: data.csv)
   -o OUTPUT_FILE, --output_file OUTPUT_FILE

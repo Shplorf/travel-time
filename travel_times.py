@@ -86,7 +86,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '-f',
+    '-i',
     '--input_file',
     help='CSV File with addresses and preferred travel modes',
     type=str,
