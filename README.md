@@ -22,7 +22,7 @@ optional arguments:
                         CSV File duplicating input data, but also adding
                         travel times (default: travel_times.csv)
   -k API_KEY, --api_key API_KEY
-                        Google Directions API key (default: None)
+                        Google Distance Matrix API key (default: None)
   -d DAY_OF_WEEK, --day_of_week DAY_OF_WEEK
                         Day of week to calculate travel times for. 0 = Monday,
                         1=Tuesday, 2=Wednesday... (default: 0)
