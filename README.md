@@ -1,4 +1,5 @@
 # travel-time
+This script leverages the Google distance matrix API to find commute times to different office locations for a group of people
 ## Required Python modules:
 - pytz (for time zone stuff)
 - grequests (for easy parallel API requests)
