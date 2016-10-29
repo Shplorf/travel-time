@@ -8,6 +8,7 @@
 ```
 usage: travel_times.py [-h] -a ADDRESS [-f INPUT_FILE] [-o OUTPUT_FILE] -k
                        API_KEY [-d DAY_OF_WEEK]
+                       [-m {preferred,driving,bicycling,transit,walking}]
 
 Travel times calculator
 
@@ -26,6 +27,8 @@ optional arguments:
   -d DAY_OF_WEEK, --day_of_week DAY_OF_WEEK
                         Day of week to calculate travel times for. 0 = Monday,
                         1=Tuesday, 2=Wednesday... (default: 0)
+  -m {preferred,driving,bicycling,transit,walking}, --mode {preferred,driving,bicycling,transit,walking}
+                        Mode of transportation (default: preferred)
 ```
 
 # Input

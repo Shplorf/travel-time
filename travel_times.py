@@ -5,24 +5,51 @@ import datetime
 
 import pytz
 import requests
-import frogress
 
-WORK_HOURS = {
-    '6_2': (6, 14),
-    '7_3': (7, 15),
-    '8_4': (8, 16),
-    '9_5': (9, 17),
-    '10_6': (10, 18),
-    '11_7': (11, 19)
-}
+WORK_HOURS = [
+    {
+        'name': '6_3',
+        'start': 6,
+        'end': 15
+    },
+    {
+        'name': '7_4',
+        'start': 7,
+        'end': 16
+    },
+    {
+        'name': '8_5',
+        'start': 8,
+        'end': 17
+    },
+    {
+        'name': '9_6',
+        'start': 9,
+        'end': 18
+    },
+    {
+        'name': '10_7',
+        'start': 10,
+        'end': 19
+    },
+    {
+        'name': '11_8',
+        'start': 11,
+        'end': 20
+    }
+]
 
-IN_HEADER = {
-    'name': 'name',
-    'address': 'address',
-    'mode': 'mode'
-}
+IN_HEADER = [
+    'name',
+    'address',
+    'mode'
+]
+
+MODES = ['driving', 'bicycling', 'transit', 'walking']
 
 TZ = pytz.timezone('America/New_York')
+
+API_ENDPOINT_STR = 'https://maps.googleapis.com/maps/api/distancematrix/json'
 
 parser = argparse.ArgumentParser(
     description='Travel times calculator',
@@ -69,6 +96,15 @@ parser.add_argument(
     default=0
 )
 
+parser.add_argument(
+    '-m',
+    '--mode',
+    help='Mode of transportation',
+    type=str,
+    default='preferred',
+    choices=['preferred', 'driving', 'bicycling', 'transit', 'walking']
+)
+
 
 def next_weekday(d, weekday):
     days_ahead = weekday - d.weekday()
@@ -82,51 +118,102 @@ def get_times(day_of_week, times):
     day = next_weekday(datetime.date.today(), day_of_week)
     out_times = {}
 
-    for name, time_slot in times.iteritems():
-        out_times[name] = (
-            datetime.datetime.combine(day, datetime.time(hour=time_slot[0], tzinfo=TZ)),
-            datetime.datetime.combine(day, datetime.time(hour=time_slot[1], tzinfo=TZ))
+    for time in times:
+        out_times[time['name']] = (
+            datetime.datetime.combine(day, datetime.time(hour=time['start'], tzinfo=TZ)),
+            datetime.datetime.combine(day, datetime.time(hour=time['end'], tzinfo=TZ))
         )
 
     return out_times
 
-
 args = parser.parse_args()
 time_slots = get_times(args.day_of_week, WORK_HOURS)
 
-with open(args.input_file, 'r') as csv_in, open(args.output_file, 'w') as csv_out:
+with open(args.input_file, 'r') as csv_in:
 
     reader = csv.DictReader(csv_in)
-    writer = csv.DictWriter(csv_out, fieldnames=['name', 'address', 'mode', '6_2', '7_3', '8_4', '9_5', '10_6', '11_7'])
-    writer.writeheader()
 
-    for row in frogress.bar(reader):
+    people = []
+    addresses = []
+    modes = []
 
-        output = row
+    # Reading in CSV
+    for row in reader:
+        people.append(row)
+        addresses.append(row[IN_HEADER[1]])
+        modes.append(row[IN_HEADER[2]])
+
+    # For each mode and time slot, ask the Google API for the travel times
+    for mode in MODES:
+
+        if mode == 'driving':
+            dur_str = 'duration_in_traffic'
+        else:
+            dur_str = 'duration'
 
         for time_slot_name, time_slot in time_slots.iteritems():
 
-            total_time = 0
+            # Home -> office
+            params = {
+                'mode': mode,
+                'origins': '|'.join(addresses),
+                'destinations': args.address,
+                'key': args.api_key,
+                'departure_time': int((time_slot[0] - datetime.datetime(1970,1,1, tzinfo=TZ)).total_seconds())
+            }
+            r = requests.get(API_ENDPOINT_STR, params=params)
 
-            for direction in [(0, 'arrival_time'), (1, 'departure_time')]:
-                params = {
-                    'mode': row[IN_HEADER['mode']],
-                    'origin': row[IN_HEADER['address']],
-                    'destination': args.address,
-                    'key': args.api_key,
-                    direction[1]: int(
-                        (
-                            time_slot[direction[0]] -
-                            datetime.datetime(1970,1,1, tzinfo=TZ)
-                        ).total_seconds()
-                    )
-                }
-                r = requests.get('https://maps.googleapis.com/maps/api/directions/json', params=params)
+            if r.status_code == 200:
+                body = json.loads(r.text)
+                for i in xrange(len(addresses)):
+                    person = people[i]
+                    person.setdefault('times', {})
+                    person['times'].setdefault(time_slot_name, {})
+                    person['times'][time_slot_name].setdefault(mode, 0)
+                    person['times'][time_slot_name][mode] += body['rows'][i]['elements'][0][dur_str]['value']
 
-                if r.status_code == 200:
-                    body = json.loads(r.text)
-                    total_time += body['routes'][0]['legs'][0]['duration']['value']
+            # Office -> home
+            params = {
+                'mode': mode,
+                'origins': args.address,
+                'destinations': '|'.join(addresses),
+                'key': args.api_key,
+                'departure_time': int((time_slot[1] - datetime.datetime(1970, 1, 1, tzinfo=TZ)).total_seconds())
+            }
+            r = requests.get(API_ENDPOINT_STR, params=params)
 
-            output[time_slot_name] = total_time
+            if r.status_code == 200:
 
-        writer.writerow(output)
+                body = json.loads(r.text)
+
+                for i in xrange(len(addresses)):
+                    person = people[i]
+                    person['times'][time_slot_name][mode] += body['rows'][0]['elements'][i][dur_str]['value']
+
+    # Output results to CSV
+    with open(args.output_file, 'w') as csv_out:
+
+        writer = csv.DictWriter(
+            csv_out,
+            fieldnames=IN_HEADER + time_slots.keys()
+        )
+        writer.writeheader()
+
+        # Sets mode of transportation of person p to mode m
+        def set_mode(p, m):
+            p['mode'] = m
+            for slot_name in time_slots.keys():
+                p[slot_name] = p['times'][slot_name][m]
+
+        for i in xrange(len(people)):
+
+            person = people[i]
+
+            if args.mode == 'preferred':
+                set_mode(person, modes[i])
+            else:
+                set_mode(person, args.mode)
+
+            del person['times']
+
+        writer.writerows(people)
