@@ -16,27 +16,27 @@ WORK_HOURS = [
         'name': '7_4',
         'start': 7,
         'end': 16
+    },
+    {
+        'name': '8_5',
+        'start': 8,
+        'end': 17
+    },
+    {
+        'name': '9_6',
+        'start': 9,
+        'end': 18
+    },
+    {
+        'name': '10_7',
+        'start': 10,
+        'end': 19
+    },
+    {
+        'name': '11_8',
+        'start': 11,
+        'end': 20
     }
-    # {
-    #     'name': '8_5',
-    #     'start': 8,
-    #     'end': 17
-    # },
-    # {
-    #     'name': '9_6',
-    #     'start': 9,
-    #     'end': 18
-    # },
-    # {
-    #     'name': '10_7',
-    #     'start': 10,
-    #     'end': 19
-    # },
-    # {
-    #     'name': '11_8',
-    #     'start': 11,
-    #     'end': 20
-    # }
 ]
 
 IN_HEADER = [
