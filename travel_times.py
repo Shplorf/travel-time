@@ -57,11 +57,32 @@ parser = argparse.ArgumentParser(
 )
 
 parser.add_argument(
-    '-a',
-    '--address',
+    'api_key',
+    help='Google Distance Matrix API key',
+    type=str
+)
+
+parser.add_argument(
+    'address',
     help='Destination address',
+    type=str
+)
+
+parser.add_argument(
+    '-m',
+    '--mode',
+    help='Mode of transportation',
     type=str,
-    required=True
+    default='preferred',
+    choices=['preferred', 'driving', 'bicycling', 'transit', 'walking']
+)
+
+parser.add_argument(
+    '-d',
+    '--day_of_week',
+    help='Day of week to calculate travel times for. 0 = Monday, 1=Tuesday, 2=Wednesday...',
+    type=int,
+    default=0
 )
 
 parser.add_argument(
@@ -78,31 +99,6 @@ parser.add_argument(
     help='CSV File duplicating input data, but also adding travel times',
     type=str,
     default='travel_times.csv'
-)
-
-parser.add_argument(
-    '-k',
-    '--api_key',
-    help='Google Distance Matrix API key',
-    type=str,
-    required=True
-)
-
-parser.add_argument(
-    '-d',
-    '--day_of_week',
-    help='Day of week to calculate travel times for. 0 = Monday, 1=Tuesday, 2=Wednesday...',
-    type=int,
-    default=0
-)
-
-parser.add_argument(
-    '-m',
-    '--mode',
-    help='Mode of transportation',
-    type=str,
-    default='preferred',
-    choices=['preferred', 'driving', 'bicycling', 'transit', 'walking']
 )
 
 
@@ -180,6 +176,8 @@ with open(args.input_file, 'r') as csv_in:
                     person['times'].setdefault(time_slot_name, {})
                     person['times'][time_slot_name].setdefault(mode, 0)
                     person['times'][time_slot_name][mode] += body['rows'][k]['elements'][0][dur_str]['value']
+            else:
+                raise ValueError("Non-200 status code! URL:%s" % result.url)
             j += 1
         i += 1
     # End Home -> office
@@ -216,6 +214,8 @@ with open(args.input_file, 'r') as csv_in:
                 for k in xrange(len(addresses)):
                     person = people[k]
                     person['times'][time_slot_name][mode] += body['rows'][0]['elements'][k][dur_str]['value']
+            else:
+                raise ValueError("Non-200 status code! URL:%s" % result.url)
             j += 1
         i += 1
 
@@ -224,7 +224,7 @@ with open(args.input_file, 'r') as csv_in:
 
         writer = csv.DictWriter(
             csv_out,
-            fieldnames=IN_HEADER + time_slots.keys()
+            fieldnames=IN_HEADER + map(lambda x: x['name'], WORK_HOURS)
         )
         writer.writeheader()
 

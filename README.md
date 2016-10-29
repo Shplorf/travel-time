@@ -5,29 +5,29 @@
 
 ## Usage
 ```
-usage: travel_times.py [-h] -a ADDRESS [-f INPUT_FILE] [-o OUTPUT_FILE] -k
-                       API_KEY [-d DAY_OF_WEEK]
-                       [-m {preferred,driving,bicycling,transit,walking}]
+usage: travel_times.py [-h] [-m {preferred,driving,bicycling,transit,walking}]
+                       [-d DAY_OF_WEEK] [-f INPUT_FILE] [-o OUTPUT_FILE]
+                       api_key address
 
 Travel times calculator
 
+positional arguments:
+  api_key               Google Distance Matrix API key
+  address               Destination address
+
 optional arguments:
   -h, --help            show this help message and exit
-  -a ADDRESS, --address ADDRESS
-                        Destination address (default: None)
+  -m {preferred,driving,bicycling,transit,walking}, --mode {preferred,driving,bicycling,transit,walking}
+                        Mode of transportation (default: preferred)
+  -d DAY_OF_WEEK, --day_of_week DAY_OF_WEEK
+                        Day of week to calculate travel times for. 0 = Monday,
+                        1=Tuesday, 2=Wednesday... (default: 0)
   -f INPUT_FILE, --input_file INPUT_FILE
                         CSV File with addresses and preferred travel modes
                         (default: data.csv)
   -o OUTPUT_FILE, --output_file OUTPUT_FILE
                         CSV File duplicating input data, but also adding
                         travel times (default: travel_times.csv)
-  -k API_KEY, --api_key API_KEY
-                        Google Distance Matrix API key (default: None)
-  -d DAY_OF_WEEK, --day_of_week DAY_OF_WEEK
-                        Day of week to calculate travel times for. 0 = Monday,
-                        1=Tuesday, 2=Wednesday... (default: 0)
-  -m {preferred,driving,bicycling,transit,walking}, --mode {preferred,driving,bicycling,transit,walking}
-                        Mode of transportation (default: preferred)
 ```
 
 # Input
