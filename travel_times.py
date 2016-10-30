@@ -47,7 +47,12 @@ IN_HEADER = [
     'mode'
 ]
 
-MODES = ['driving', 'bicycling', 'transit', 'walking']
+MODES = [
+    'driving',
+    'bicycling',
+    'transit',
+    'walking'
+]
 
 TZ = pytz.timezone('America/New_York')
 
@@ -135,20 +140,23 @@ def get_times(day_of_week, times):
             'start': 6,
             'end': 15
         }]
-    :return: Dict of tuples in the following format:
-        {
-            '6_3': (datetime object, datetime object)
-        }
+    :return: List of dicts in the following format:
+        [{
+            'name': '6_3',
+            'start': datetime object,
+            'end': datetime object
+        }]
     """
 
     day = next_weekday(datetime.date.today(), day_of_week)
-    out_times = {}
+    out_times = []
 
     for time in times:
-        out_times[time['name']] = (
-            datetime.datetime.combine(day, datetime.time(hour=time['start'], tzinfo=TZ)),
-            datetime.datetime.combine(day, datetime.time(hour=time['end'], tzinfo=TZ))
-        )
+        out_times.append({
+            'name': time['name'],
+            'start': datetime.datetime.combine(day, datetime.time(hour=time['start'], tzinfo=TZ)),
+            'end': datetime.datetime.combine(day, datetime.time(hour=time['end'], tzinfo=TZ))
+        })
 
     return out_times
 # End utility functions
@@ -178,15 +186,17 @@ with open(args.input_file, 'r') as csv_in:
     #
     # Preparing requests and sending them out in parallel
     request_params = []
+    r_order = []
     for mode in MODES:
-        for time_slot_name, time_slot in time_slots.iteritems():
+        for time_slot in time_slots:
             request_params.append({
                 'mode': mode,
                 'origins': '|'.join(addresses),
                 'destinations': args.address,
                 'key': args.api_key,
-                'departure_time': int((time_slot[0] - datetime.datetime(1970,1,1, tzinfo=TZ)).total_seconds())
+                'departure_time': int((time_slot['start'] - datetime.datetime(1970,1,1, tzinfo=TZ)).total_seconds())
             })
+            r_order.append((mode, int((time_slot['start'] - datetime.datetime(1970,1,1, tzinfo=TZ)).total_seconds())))
     results = grequests.map(grequests.get(API_ENDPOINT_STR, params=p) for p in request_params)
 
     # Parsing results
@@ -197,18 +207,18 @@ with open(args.input_file, 'r') as csv_in:
         else:
             dur_str = 'duration'
         j = 0
-        for time_slot_name, time_slot in time_slots.iteritems():
+        for time_slot in time_slots:
 
-            result = results[i + j]
+            result = results[i * len(MODES) + j]
             if result.status_code == 200:
                 body = json.loads(result.text)
 
                 for k in xrange(len(addresses)):
                     person = people[k]
                     person.setdefault('times', {})
-                    person['times'].setdefault(time_slot_name, {})
-                    person['times'][time_slot_name].setdefault(mode, 0)
-                    person['times'][time_slot_name][mode] += body['rows'][k]['elements'][0][dur_str]['value']
+                    person['times'].setdefault(time_slot['name'], {})
+                    person['times'][time_slot['name']].setdefault(mode, 0)
+                    person['times'][time_slot['name']][mode] += body['rows'][k]['elements'][0][dur_str]['value']
             else:
                 raise ValueError("Non-200 status code! URL:%s" % result.url)
             j += 1
@@ -220,13 +230,13 @@ with open(args.input_file, 'r') as csv_in:
     # Preparing requests and sending them out in parallel
     request_params = []
     for mode in MODES:
-        for time_slot_name, time_slot in time_slots.iteritems():
+        for time_slot in time_slots:
             request_params.append({
                 'mode': mode,
                 'origins': args.address,
                 'destinations': '|'.join(addresses),
                 'key': args.api_key,
-                'departure_time': int((time_slot[1] - datetime.datetime(1970, 1, 1, tzinfo=TZ)).total_seconds())
+                'departure_time': int((time_slot['end'] - datetime.datetime(1970, 1, 1, tzinfo=TZ)).total_seconds())
             })
     results = grequests.map(grequests.get(API_ENDPOINT_STR, params=p) for p in request_params)
 
@@ -238,15 +248,15 @@ with open(args.input_file, 'r') as csv_in:
         else:
             dur_str = 'duration'
         j = 0
-        for time_slot_name, time_slot in time_slots.iteritems():
+        for time_slot in time_slots:
 
-            result = results[i + j]
+            result = results[i * len(MODES) + j]
             if result.status_code == 200:
                 body = json.loads(result.text)
 
                 for k in xrange(len(addresses)):
                     person = people[k]
-                    person['times'][time_slot_name][mode] += body['rows'][0]['elements'][k][dur_str]['value']
+                    person['times'][time_slot['name']][mode] += body['rows'][0]['elements'][k][dur_str]['value']
             else:
                 raise ValueError("Non-200 status code! URL:%s" % result.url)
             j += 1
@@ -256,16 +266,18 @@ with open(args.input_file, 'r') as csv_in:
     # Output results to CSV
     with open(args.output_file, 'w') as csv_out:
 
+        time_slot_names = map(lambda x: x['name'], time_slots)
+
         writer = csv.DictWriter(
             csv_out,
-            fieldnames=IN_HEADER + map(lambda x: x['name'], WORK_HOURS)
+            fieldnames=IN_HEADER + time_slot_names
         )
         writer.writeheader()
 
         # Sets mode of transportation of person p to mode m
         def set_mode(p, m):
             p['mode'] = m
-            for slot_name in time_slots.keys():
+            for slot_name in time_slot_names:
                 p[slot_name] = p['times'][slot_name][m]
 
         for i in xrange(len(people)):
