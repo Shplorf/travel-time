@@ -32,7 +32,7 @@ optional arguments:
 ```
 
 # Input
-CSV header: name,address,mode
+No header
 
 Example row: `John Doe,123 Some St Cambridge MA,driving`
 

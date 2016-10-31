@@ -287,7 +287,7 @@ time_slots = get_times(args.day_of_week, WORK_HOURS)
 with open(args.input_file, 'r') as csv_in:
 
     # Read in CSV
-    reader = csv.DictReader(csv_in)
+    reader = csv.DictReader(csv_in, fieldnames=IN_HEADER)
     ppl = []
     for row in reader:
         ppl.append(row)
