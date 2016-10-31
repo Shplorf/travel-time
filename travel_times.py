@@ -265,7 +265,7 @@ parser.add_argument(
     '--input_file',
     help='CSV File with addresses and preferred travel modes',
     type=str,
-    default='data.csv'
+    default='input.csv'
 )
 
 parser.add_argument(
