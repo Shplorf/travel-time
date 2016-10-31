@@ -4,7 +4,7 @@ import json
 import datetime
 
 import pytz
-import grequests
+import requests
 
 
 # Constants
@@ -154,8 +154,6 @@ def add_travel_times(dst_address, direction, people, time_slots, api_key):
                     (time_slot[time] - datetime.datetime(1970, 1, 1, tzinfo=TZ)).total_seconds())
             })
 
-    results = grequests.map(grequests.get(API_ENDPOINT_STR, params=p) for p in request_params)
-
     i = 0
     for mode in MODES:
         if mode == 'driving':
@@ -165,7 +163,8 @@ def add_travel_times(dst_address, direction, people, time_slots, api_key):
         j = 0
         for time_slot in time_slots:
 
-            result = results[i * len(MODES) + j]
+            result = requests.get(API_ENDPOINT_STR, params=request_params.pop(0))
+
             if result.status_code == 200:
                 body = json.loads(result.text)
 
@@ -176,9 +175,18 @@ def add_travel_times(dst_address, direction, people, time_slots, api_key):
                     person['times'][time_slot['name']].setdefault(mode, 0)
 
                     if direction == 'work':
-                        person['times'][time_slot['name']][mode] += body['rows'][k]['elements'][0][dur_str]['value']
+                        row_index = k
+                        element_index = 0
                     else:
-                        person['times'][time_slot['name']][mode] += body['rows'][0]['elements'][k][dur_str]['value']
+                        row_index = 0
+                        element_index = k
+
+                    element = body['rows'][row_index]['elements'][element_index]
+
+                    if element['status'] != 'OK':
+                        person['times'][time_slot['name']][mode] = element['status']
+                    elif type(person['times'][time_slot['name']][mode]) is int:
+                        person['times'][time_slot['name']][mode] += element[dur_str]['value']
             else:
                 raise ValueError("Non-200 status code! URL:%s" % result.url)
             j += 1
@@ -192,32 +200,26 @@ def write_results(people, file_name):
     :param file_name: String, output file path
     """
 
-    modes = map(lambda x: x['mode'], people)
-
     with open(file_name, 'w') as csv_out:
 
+        out_fields = []
         time_slot_names = map(lambda x: x['name'], time_slots)
+        for mode in MODES:
+            for time_slot_name in time_slot_names:
+                out_fields.append(mode + '_' + time_slot_name)
 
         writer = csv.DictWriter(
             csv_out,
-            fieldnames=IN_HEADER + time_slot_names
+            fieldnames=IN_HEADER + out_fields
         )
         writer.writeheader()
-
-        # Sets mode of transportation of person p to mode m
-        def set_mode(p, m):
-            p['mode'] = m
-            for slot_name in time_slot_names:
-                p[slot_name] = p['times'][slot_name][m]
 
         for i in xrange(len(people)):
 
             person = people[i]
-
-            if args.mode == 'preferred':
-                set_mode(person, modes[i])
-            else:
-                set_mode(person, args.mode)
+            for mode in MODES:
+                for time_slot_name in time_slot_names:
+                    person[mode + '_' + time_slot_name] = person['times'][time_slot_name][mode]
 
             del person['times']
 
@@ -241,15 +243,6 @@ parser.add_argument(
     'address',
     help='Destination address',
     type=str
-)
-
-parser.add_argument(
-    '-m',
-    '--mode',
-    help='Mode of transportation',
-    type=str,
-    default='preferred',
-    choices=['preferred', 'driving', 'bicycling', 'transit', 'walking']
 )
 
 parser.add_argument(
