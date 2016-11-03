@@ -154,16 +154,17 @@ def add_travel_times(dst_address, direction, people, time_slots, api_key):
                     (time_slot[time] - datetime.datetime(1970, 1, 1, tzinfo=TZ)).total_seconds())
             })
 
-    i = 0
     for mode in MODES:
         if mode == 'driving':
             dur_str = 'duration_in_traffic'
         else:
             dur_str = 'duration'
-        j = 0
         for time_slot in time_slots:
 
-            result = requests.get(API_ENDPOINT_STR, params=request_params.pop(0))
+            params = request_params.pop(0)
+            if params['mode'] not in ['driving', 'transit']:
+                del params['departure_time']
+            result = requests.get(API_ENDPOINT_STR, params=params)
 
             if result.status_code == 200:
                 body = json.loads(result.text)
@@ -189,8 +190,6 @@ def add_travel_times(dst_address, direction, people, time_slots, api_key):
                         person['times'][time_slot['name']][mode] += element[dur_str]['value']
             else:
                 raise ValueError("Non-200 status code! URL:%s" % result.url)
-            j += 1
-        i += 1
 
 
 def write_results(people, file_name):
